@@ -2,7 +2,9 @@
   (:gen-class))
 
 (import '(java.io File)
-        '(javax.sound.sampled AudioSystem))
+        '(javax.sound.sampled AudioSystem)
+        '(java.awt Dimension BorderLayout)
+        '(javax.swing JFrame JPanel))
 
 (require 'ensemble-analyzer.fft)
 (alias 'fft 'ensemble-analyzer.fft)
@@ -26,5 +28,22 @@
 (def nfft 4096)
 (def fa 442) ; Hz
 
+(defn make-panel []
+  (proxy [JPanel] []
+    (paintComponent [g]
+      (proxy-super paintComponent g))
+    (getPreferredSize [] 
+      (Dimension. 200 200)
+      )))
+
+(defn make-frame []
+  (let [frame (JFrame. "Ensemble Analyzer")
+        panel (make-panel)]
+    (.. frame getContentPane (add panel BorderLayout/CENTER))
+    (.pack frame)
+    (.setVisible frame true)
+    frame))
+
 (defn -main [& args]
-  (prn (fft/fft (take 4096 (read-file)))))
+  (let [frame (make-frame)]
+    :done))
