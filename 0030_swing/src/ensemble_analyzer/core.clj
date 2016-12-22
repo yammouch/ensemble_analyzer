@@ -3,7 +3,7 @@
 
 (import '(java.io File)
         '(javax.sound.sampled AudioSystem)
-        '(java.awt Dimension BorderLayout)
+        '(java.awt Dimension BorderLayout Color)
         '(javax.swing JFrame JPanel))
 
 (require 'ensemble-analyzer.fft)
@@ -28,10 +28,18 @@
 (def nfft 4096)
 (def fa 442) ; Hz
 
+(def spectrum (ref nil))
+
+(defn paint-spectrum [g]
+  (doseq [[y s] (map vector (range 199 -1 -1) @spectrum)]
+    (.setColor g (Color. s s s))
+    (.fillRect g 0 y 5 1)))
+
 (defn make-panel []
   (proxy [JPanel] []
     (paintComponent [g]
-      (proxy-super paintComponent g))
+      (proxy-super paintComponent g)
+      (paint-spectrum g))
     (getPreferredSize [] 
       (Dimension. 200 200)
       )))
@@ -45,5 +53,7 @@
     frame))
 
 (defn -main [& args]
+  (dosync
+    (ref-set spectrum (range 200)))
   (let [frame (make-frame)]
     :done))
