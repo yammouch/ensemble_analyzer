@@ -1,48 +1,33 @@
 (ns ensemble-analyzer.fft)
 
-(defn c+ [& seq]
-  (if (empty? seq)
-    (list 0.0 0.0)
-    (letfn [(c+2 [[pre pim] [sre sim]]
-              (list (+ pre sre) (+ pim sim)))]
-      (reduce c+2 seq))))
+(defn c* [[pre pim] [sre sim]]
+  (list (- (* pre sre) (* pim sim))
+        (+ (* pim sre) (* pre sim))))
 
-(defn c- [& seq]
-  (cond (empty? seq) (list 0.0 0.0)
-        (empty? (rest seq)) (list (- (nth (first seq) 0))
-                                  (- (nth (first seq) 1)))
-        :else
-        (letfn [(c-2 [[pre pim] [sre sim]]
-                  (list (- pre sre) (- pim sim)))]
-          (reduce c-2 seq))))
-
-(defn c* [& seq]
-  (if (empty? seq)
-    (list 1.0 0.0)
-    (letfn [(c*2 [[pre pim] [sre sim]]
-              (list (- (* pre sre) (* pim sim))
-                    (+ (* pim sre) (* pre sim))))]
-      (reduce c*2 seq))))
-
-(defn deinterleave [n seq]
-  (if (empty? (nthrest seq n))
-    (take n (lazy-cat (map list seq)
-                      (repeat '())))
-    (map cons (take n seq)
-              (deinterleave n (nthrest seq n))
-              )))
+(defn fftc [seq]
+  (if (empty? (next seq))
+    seq
+    (let [n (count seq)
+          [ev od] (apply map vector (partition 2 seq)) ; deinterleave
+          evfft (fftc ev)
+          odfft (fftc od)
+          ws (let [n-div-inv-pi (/ (* 2 Math/PI) n)]
+               (map (fn [i]
+                      (let [phase (* n-div-inv-pi i)]
+                        (list (Math/cos phase) (Math/sin phase))))
+                    (range (/ n 2))))
+          odws (map c* odfft ws)]
+      (concat (map (fn [x y] (map + x y)) evfft odws)
+              (map (fn [x y] (map - x y)) evfft odws)))))
 
 (defn fft [seq]
-  (cond (empty? seq) '()
-        (empty? (rest seq)) (list (list (first seq) 0.0)) ; '((re im))
-        :else
-        (let [n (count seq)
-              [ev od] (deinterleave 2 seq)
-              evfft (fft ev)
-              odfft (fft od)
-              ws (map (fn [i] (list (Math/cos (/ (* Math/PI i) (/ n 2)))
-                                    (Math/sin (/ (* Math/PI i) (/ n 2)))))
-                      (range (/ n 2)))
-              odws (map c* odfft ws)]
-        (concat (map c+ evfft odws)
-    (map c- evfft odws)))))
+  (fftc (map (fn [x] [x 0.0]) seq)))
+
+(defn fft-mag [seq]
+  (map (fn [[re im]] (Math/sqrt (+ (* re re) (* im im))))
+       (fft seq)))
+
+(defn fft-mag-norm [seq swing-0db]
+  (let [factor (/ 2 swing-0db (count seq))]
+    (map #(* % factor)
+         (fft-mag seq)))) 
