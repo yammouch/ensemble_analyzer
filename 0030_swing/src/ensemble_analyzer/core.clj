@@ -65,11 +65,11 @@
                                 200
                                 (/ sampling-rate nfft)
                                 (/ nfft 2))
-        chromatic (chr/pickup pickup-index
-                              (first spectrum))
+        chromatic (map (fn [v] (chr/pickup pickup-index v))
+                       spectrum)
         log10 (Math/log 10.0)
         db (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10))) log10))
-                chromatic)
+                (first chromatic))
         db-min -80.0 db-max 0.0
         coeff (/ 254.0 (- db-max db-min))
         visuals (map (fn [x]
