@@ -69,18 +69,19 @@
         log10 (Math/log 10.0)
         db (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10))) log10))
                 chromatic)
-        _ (spit "db.dat"
-                (with-out-str
-                 (clojure.pprint/pprint db)))
         db-min -80.0 db-max 0.0
-        coeff (* 254.0 (- db-max db-min))
+        coeff (/ 254.0 (- db-max db-min))
         visuals (map (fn [x]
                        (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
                          (cond (<   i 0) 0
                                (< 255 i) 255
                                :else     i)))
                      db)]
+    (spit "visuals.dat"
+          (with-out-str (clojure.pprint/pprint visuals)))
     (dosync
       (ref-set color-map visuals))
+    (spit "color-map.dat"
+          (with-out-str (clojure.pprint/pprint color-map)))
     (let [frame (make-frame)]
       :done)))
