@@ -31,3 +31,4 @@
   (let [factor (/ 2 swing-0db (count seq))]
     (map #(* % factor)
          (fft-mag seq)))) 
+

@@ -19,9 +19,9 @@
 
                  :else
                  (let [u (int (+ 0.5 h))]
-                   (range (int (+ 0.5 l))
-                          (if (<= n-valid-fft-bins u) n-valid-fft-bins u)
-                          ))))
+                   (vec (range (int (+ 0.5 l))
+                               (if (<= n-valid-fft-bins u) n-valid-fft-bins u)
+                               )))))
          (partition 2 1 fnorm))))
 
 (defn pickup [vv sm] ; vv, vector of vercors, sm : spectrum magnitude
