@@ -58,14 +58,14 @@
 (require 'clojure.pprint)
 
 (defn -main [& args]
-  (let [spectrum (vec (fft/fft-mag-norm (take nfft (read-file))
-                                        (bit-shift-left 1 15)))
+  (let [spectrum (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
+                      (partition nfft (read-file)))
         chromatic (chr/pickup (chr/index (* fa (Math/pow 2.0 -36.5)) ; A1
                                          (* fa (Math/pow 2.0  24.5)) ; A6
                                          200
                                          (/ sampling-rate nfft)
                                          (/ nfft 2))
-                              spectrum)
+                              (first spectrum))
         log10 (Math/log 10.0)
         db (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10))) log10))
                 chromatic)
