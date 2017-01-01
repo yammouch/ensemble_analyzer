@@ -34,9 +34,10 @@
 (def color-map (ref nil))
 
 (defn paint-spectrum [g]
-  (doseq [[y s] (map vector (range 199 -1 -1) (first @color-map))]
-    (.setColor g (Color. s s s))
-    (.fillRect g 0 y 5 1)))
+  (doseq [[x v] (map vector (range 200) @color-map)]
+    (doseq [[y s] (map vector (range 199 -1 -1) v)]
+      (.setColor g (Color. s s s))
+      (.fillRect g x y 1 1))))
 
 (defn make-panel []
   (proxy [JPanel] []
