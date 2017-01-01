@@ -34,7 +34,7 @@
 (def color-map (ref nil))
 
 (defn paint-spectrum [g]
-  (doseq [[y s] (map vector (range 199 -1 -1) @color-map)]
+  (doseq [[y s] (map vector (range 199 -1 -1) (first @color-map))]
     (.setColor g (Color. s s s))
     (.fillRect g 0 y 5 1)))
 
@@ -57,6 +57,10 @@
 
 (require 'clojure.pprint)
 
+(defn map2d [f vv]
+  (map (fn [v] (map f v))
+       vv))
+
 (defn -main [& args]
   (let [spectrum (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
                       (partition nfft (read-file)))
@@ -68,24 +72,18 @@
         chromatic (map (fn [v] (chr/pickup pickup-index v))
                        spectrum)
         log10 (Math/log 10.0)
-        db (map (fn [v]
-                  (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
-                                  log10))
-                       v))
-                chromatic)
+        db (map2d (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
+                             log10))
+                  chromatic)
         db-min -80.0 db-max 0.0
         coeff (/ 254.0 (- db-max db-min))
-        visuals (map (fn [x]
-                       (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
-                         (cond (<   i 0) 0
-                               (< 255 i) 255
-                               :else     i)))
-                     (first db))]
-    (spit "visuals.dat"
-          (with-out-str (clojure.pprint/pprint visuals)))
+        visuals (map2d (fn [x]
+                         (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
+                           (cond (<   i 0) 0
+                                 (< 255 i) 255
+                                 :else     i)))
+                       db)]
     (dosync
       (ref-set color-map visuals))
-    (spit "color-map.dat"
-          (with-out-str (clojure.pprint/pprint color-map)))
     (let [frame (make-frame)]
       :done)))
