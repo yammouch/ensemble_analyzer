@@ -68,8 +68,11 @@
         chromatic (map (fn [v] (chr/pickup pickup-index v))
                        spectrum)
         log10 (Math/log 10.0)
-        db (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10))) log10))
-                (first chromatic))
+        db (map (fn [v]
+                  (map (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
+                                  log10))
+                       v))
+                chromatic)
         db-min -80.0 db-max 0.0
         coeff (/ 254.0 (- db-max db-min))
         visuals (map (fn [x]
@@ -77,7 +80,7 @@
                          (cond (<   i 0) 0
                                (< 255 i) 255
                                :else     i)))
-                     db)]
+                     (first db))]
     (spit "visuals.dat"
           (with-out-str (clojure.pprint/pprint visuals)))
     (dosync
