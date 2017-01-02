@@ -1,3 +1,10 @@
+; D:\tyam\src\pitch_analyzer\0030_swing>lein run
+; "Elapsed time: 362715.90812 msecs"
+; "Elapsed time: 5.091551 msecs"
+; "Elapsed time: 2.248132 msecs"
+; "Elapsed time: 1.043189 msecs"
+; "Elapsed time: 0.997209 msecs"
+
 (ns ensemble-analyzer.core
   (:gen-class))
 
@@ -63,27 +70,32 @@
        vv))
 
 (defn -main [& args]
-  (let [spectrum (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
-                      (partition nfft (read-file)))
-        pickup-index (chr/index (* fa (Math/pow 2.0 -36.5)) ; A1
-                                (* fa (Math/pow 2.0  24.5)) ; A6
-                                200
-                                (/ sampling-rate nfft)
-                                (/ nfft 2))
-        chromatic (map (fn [v] (chr/pickup pickup-index v))
-                       spectrum)
+  (let [spectrum (time (doall
+                  (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
+                       (partition nfft (read-file)))))
+        pickup-index (time (doall
+                      (chr/index (* fa (Math/pow 2.0 -36.5)) ; A1
+                                 (* fa (Math/pow 2.0  24.5)) ; A6
+                                 200
+                                 (/ sampling-rate nfft)
+                                 (/ nfft 2))))
+        chromatic (time (doall
+                   (map (fn [v] (chr/pickup pickup-index v))
+                        spectrum)))
         log10 (Math/log 10.0)
-        db (map2d (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
-                             log10))
-                  chromatic)
+        db (time (doall
+            (map2d (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
+                              log10))
+                   chromatic)))
         db-min -80.0 db-max 0.0
         coeff (/ 254.0 (- db-max db-min))
-        visuals (map2d (fn [x]
-                         (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
-                           (cond (<   i 0) 0
-                                 (< 255 i) 255
-                                 :else     i)))
-                       db)]
+        visuals (time (doall
+                 (map2d (fn [x]
+                          (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
+                            (cond (<   i 0) 0
+                                  (< 255 i) 255
+                                  :else     i)))
+                        db)))]
     (dosync
       (ref-set color-map visuals))
     (let [frame (make-frame)]
