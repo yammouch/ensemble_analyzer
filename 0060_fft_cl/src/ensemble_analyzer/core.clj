@@ -1,10 +1,3 @@
-; $ lein run
-; "Elapsed time: 3224.905977 msecs"
-; "Elapsed time: 5.439581 msecs"
-; "Elapsed time: 0.742656 msecs"
-; "Elapsed time: 0.393292 msecs"
-; "Elapsed time: 0.232773 msecs"
-
 (ns ensemble-analyzer.core
   (:gen-class))
 
@@ -44,8 +37,8 @@
 (def color-map (ref nil))
 
 (defn paint-spectrum [g]
-  (doseq [[x v] (map vector (range 200) @color-map)]
-    (doseq [[y s] (map vector (range 199 -1 -1) v)]
+  (doseq [[x v] (map vector (range 600) @color-map)]
+    (doseq [[y s] (map vector (range 599 -1 -1) v)]
       (.setColor g (Color. s s s))
       (.fillRect g x y 1 1))))
 
@@ -55,7 +48,7 @@
       (proxy-super paintComponent g)
       (paint-spectrum g))
     (getPreferredSize [] 
-      (Dimension. 200 200)
+      (Dimension. 600 600)
       )))
 
 (defn make-frame []
@@ -76,11 +69,11 @@
   (fft/init)
   (let [spectrum (time (doall
                   (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
-                       (take 200 (partition nfft (read-file))))))
+                       (take 600 (drop 400 (partition nfft (read-file)))))))
         pickup-index (time (doall
-                      (chr/index (* fa (Math/pow 2.0 -36.5)) ; A1
-                                 (* fa (Math/pow 2.0  24.5)) ; A6
-                                 200
+                      (chr/index (* fa (Math/pow 2.0 (/ -36.5 12.0))) ; A1
+                                 (* fa (Math/pow 2.0 (/  24.5 12.0))) ; A6
+                                 600
                                  (/ sampling-rate nfft)
                                  (/ nfft 2))))
         chromatic (time (doall
