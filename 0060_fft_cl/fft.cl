@@ -81,7 +81,7 @@ __kernel void post_process(
   float re, im, mag;
   re = src[i_2    ];
   im = src[i_2 + 1];
-  mag = sqrt((re*re + im*im)*coeff);
+  mag = sqrt(re*re + im*im)*coeff;
 
   dst[i_rev] = mag;
 }

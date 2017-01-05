@@ -138,7 +138,8 @@
 (defn engine [ctx queue
               {make-w :make-w step-1st :step-1st step1 :step1
                post-process :post-process}
-              {w :w wave :wave buf0 :buf0 buf1 :buf1 result :result} exp2]
+              {w :w wave :wave buf0 :buf0 buf1 :buf1 result :result}
+              exp2 factor]
   (let [n-half (bit-shift-left 1 (dec exp2))
         err (int-array 1)
         event (CL/clCreateUserEvent ctx err)
@@ -156,7 +157,7 @@
             (do (call-step1 queue step1 src w dst n-half w-mask events)
                 (recur (inc i) dst src (bit-or (bit-shift-left w-mask 1) 1))
                 )))]
-    (call-post-process queue post-process butterflied result (/ 1.0) exp2
+    (call-post-process queue post-process butterflied result factor exp2
                        events)))
 
 (def cl-env (ref nil))
@@ -193,5 +194,6 @@
    (CL/clEnqueueWriteBuffer (:queue @cl-env) (:wave @cl-mem) CL/CL_TRUE
     0 (* (count seq) Sizeof/cl_float) (Pointer/to (float-array seq))
     0 nil nil))
-  (engine (:context @cl-env) (:queue @cl-env) @cl-prg @cl-mem @exp2)
+  (engine (:context @cl-env) (:queue @cl-env) @cl-prg @cl-mem @exp2
+          (/ 2.0 swing-0db (count seq)))
   (read-float (:queue @cl-env) (:result @cl-mem) (bit-shift-left 1 @exp2)))

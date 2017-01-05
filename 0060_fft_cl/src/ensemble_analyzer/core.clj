@@ -1,9 +1,9 @@
-; D:\tyam\src\pitch_analyzer\0030_swing>lein run
-; "Elapsed time: 362715.90812 msecs"
-; "Elapsed time: 5.091551 msecs"
-; "Elapsed time: 2.248132 msecs"
-; "Elapsed time: 1.043189 msecs"
-; "Elapsed time: 0.997209 msecs"
+; $ lein run
+; "Elapsed time: 3224.905977 msecs"
+; "Elapsed time: 5.439581 msecs"
+; "Elapsed time: 0.742656 msecs"
+; "Elapsed time: 0.393292 msecs"
+; "Elapsed time: 0.232773 msecs"
 
 (ns ensemble-analyzer.core
   (:gen-class))
