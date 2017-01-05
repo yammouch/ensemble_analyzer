@@ -1,9 +1,9 @@
-; D:\tyam\src\pitch_analyzer\0030_swing>lein run
-; "Elapsed time: 362715.90812 msecs"
-; "Elapsed time: 5.091551 msecs"
-; "Elapsed time: 2.248132 msecs"
-; "Elapsed time: 1.043189 msecs"
-; "Elapsed time: 0.997209 msecs"
+; $ lein run
+; "Elapsed time: 31516.098494 msecs"
+; "Elapsed time: 3.531007 msecs"
+; "Elapsed time: 0.390007 msecs"
+; "Elapsed time: 0.199519 msecs"
+; "Elapsed time: 0.160519 msecs"
 
 (ns ensemble-analyzer.core
   (:gen-class))
@@ -72,7 +72,7 @@
 (defn -main [& args]
   (let [spectrum (time (doall
                   (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
-                       (partition nfft (read-file)))))
+                       (take 200 (partition nfft (read-file))))))
         pickup-index (time (doall
                       (chr/index (* fa (Math/pow 2.0 -36.5)) ; A1
                                  (* fa (Math/pow 2.0  24.5)) ; A6
