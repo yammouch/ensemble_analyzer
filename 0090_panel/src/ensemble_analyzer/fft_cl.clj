@@ -140,18 +140,17 @@
                post-process :post-process}
               {w :w wave :wave buf0 :buf0 buf1 :buf1 result :result}
               exp2 factor]
-  (let [n-half (bit-shift-left 1 (dec exp2))
+  (let [n      (bit-shift-left 1      exp2 )
+        n-half (bit-shift-left 1 (dec exp2))
         err (int-array 1)
         event (CL/clCreateUserEvent ctx err)
         _ (handle-cl-error (nth err 0))
         events (into-array cl_event [event])
         local-work-size (min (bit-shift-left 1 exp2) 128)
         _ (call-make-w queue make-w w exp2 local-work-size events)
-        ;_ (prn (seq (read-float queue w (bit-shift-left 1 exp2))))
-        _ (call-step-1st queue step-1st wave buf0 n-half events)
+        _ (call-step-1st queue step-1st wave buf0 n events)
         butterflied
         (loop [i 1, src buf0, dst buf1, w-mask (int 1)]
-          ;(prn (seq (read-float queue src (bit-shift-left 2 exp2))))
           (if (<= exp2 i)
             src
             (do (call-step1 queue step1 src w dst n-half w-mask events)
@@ -189,11 +188,12 @@
                                      [(get-in @cl-env [:device :id])]
                                      ))))
 
-(defn fft-mag-norm [seq swing-0db]
+(defn fft-mag-norm [bytes ofs swing-0db]
   (handle-cl-error
    (CL/clEnqueueWriteBuffer (:queue @cl-env) (:wave @cl-mem) CL/CL_TRUE
-    0 (* (count seq) Sizeof/cl_float) (Pointer/to (float-array seq))
+    0 (* 4096 2 Sizeof/cl_uchar)
+    (.withByteOffset (Pointer/to bytes) ofs)
     0 nil nil))
   (engine (:context @cl-env) (:queue @cl-env) @cl-prg @cl-mem @exp2
-          (/ 2.0 swing-0db (count seq)))
+          (/ 2.0 swing-0db 4096))
   (read-float (:queue @cl-env) (:result @cl-mem) (bit-shift-left 1 @exp2)))

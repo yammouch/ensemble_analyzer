@@ -1,3 +1,10 @@
+; $ lein run
+; "Elapsed time: 1168.054701 msecs"
+; "Elapsed time: 3.782299 msecs"
+; "Elapsed time: 0.579272 msecs"
+; "Elapsed time: 0.274241 msecs"
+; "Elapsed time: 0.213481 msecs"
+
 (ns ensemble-analyzer.core
   (:gen-class))
 
@@ -6,9 +13,6 @@
         '(java.awt Dimension BorderLayout Color)
         '(java.awt.image BufferedImage)
         '(javax.swing JFrame JPanel ImageIcon JLabel))
-
-;(require 'ensemble-analyzer.fft)
-;(alias 'fft 'ensemble-analyzer.fft)
 
 (require 'ensemble-analyzer.fft-cl)
 (alias 'fft 'ensemble-analyzer.fft-cl)
@@ -22,14 +26,7 @@
         len (.available stream)
         buf (byte-array len)]
     (.read stream buf 0 len)
-    (map (fn [[lsb msb]]
-           (let [l (bit-and (int lsb) 0xFF)
-                 m (bit-and (int msb) 0xFF)
-                 x (bit-or (bit-shift-left m 8) l)]
-             (if (= 0 (bit-and x 0x8000)) ; if plus
-               x
-               (- x 0x10000))))
-         (partition 2 buf))))
+    buf))
 
 (def sampling-rate 44.1e3) ; s^(-1)
 (def nfft 4096)
@@ -60,9 +57,14 @@
 
 (defn -main [& args]
   (fft/init)
-  (let [spectrum (time (doall
-                  (map (fn [v] (vec (fft/fft-mag-norm v (bit-shift-left 1 15))))
-                       (take 600 (drop 400 (partition nfft (read-file)))))))
+  (let [waveform (read-file)
+        spectrum (time (doall
+                  (map (fn [ofs]
+                         (fft/fft-mag-norm waveform ofs (bit-shift-left 1 15)))
+                       (range (*        400  4096 2)
+                              (* (+ 600 400) 4096 2)
+                              (*             4096 2)
+                              ))))
         pickup-index (time (doall
                       (chr/index (* fa (Math/pow 2.0 (/ -36.5 12.0))) ; A1
                                  (* fa (Math/pow 2.0 (/  24.5 12.0))) ; A6
