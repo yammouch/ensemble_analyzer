@@ -2,8 +2,8 @@
 
 (import '(java.awt.image BufferedImage))
 
-(require 'ensemble-analyzer.fft)
-(alias 'fft 'ensemble-analyzer.fft)
+(require 'ensemble-analyzer.fft-cl)
+(alias 'fft 'ensemble-analyzer.fft-cl)
 
 ; lo : low freq in chromatic plot
 ; hi : high freq in chromatic plot
@@ -42,9 +42,13 @@
   ; The number of fft is now fixed to 4096 at the moment.
   (assoc status :mag-spectrum
          (let [br (status :bit-resolution)
-               factor (float (bit-shift-left 1 br))]
-           (map (fn [v] (vec (fft/fft-mag-norm v factor)))
-                (status :waveform)))))
+               factor (float (bit-shift-left 1 br))
+               w (status :waveform)]
+           (map (fn [ofs] (fft/fft-mag-norm w ofs factor))
+                (range (*        400  4096 2)
+                       (* (+ 600 400) 4096 2)
+                       (*             4096 2)
+                       )))))
 
 (defn freq-to-pix [status]
   (assoc status :pix-vs-fft-map
@@ -59,16 +63,20 @@
                   ih (/ sr nfft) (/ nfft 2)
                   ))))
 
-(defn map2d [f vv]
-  (map (fn [v] (map f v))
-       vv))
-
 (let [log10-inv (/ (Math/log 10.0))]
   (defn pickuper [status]
     (let [m (status :pix-vs-fft-map)]
       (assoc status :db
-             (map2d (fn [x] (* 20.0 (Math/log (+ x 1e-10)) log10-inv))
-                    (status :mag-spectrum))))))
+             (map (fn [v]
+                    (map (fn [x]
+                           (* 20.0 (Math/log (+ x 1e-10)) log10-inv))
+                         (pickup m v)))
+                  (status :mag-spectrum)
+                  )))))
+
+(defn map2d [f vv]
+  (map (fn [v] (map f v))
+       vv))
 
 (defn color-mapper [status]
   (assoc status :vertical-pix
@@ -89,7 +97,7 @@
                                      (bit-shift-left i 16)
                                      (bit-shift-left i  8)
                                      i))
-                (apply concat
-                 (reverse (apply map vector (status :vertical-pix)))))
-     0 w))
+                     (apply concat
+                      (reverse (apply map vector (status :vertical-pix))))))
+     0 w)
     (assoc status :image img)))

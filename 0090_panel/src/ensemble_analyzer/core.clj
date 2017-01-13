@@ -1,10 +1,3 @@
-; $ lein run
-; "Elapsed time: 1168.054701 msecs"
-; "Elapsed time: 3.782299 msecs"
-; "Elapsed time: 0.579272 msecs"
-; "Elapsed time: 0.274241 msecs"
-; "Elapsed time: 0.213481 msecs"
-
 (ns ensemble-analyzer.core
   (:gen-class))
 
@@ -58,44 +51,13 @@
 (defn -main [& args]
   (fft/init)
   (let [waveform (read-file)
-        spectrum (time (doall
-                  (map (fn [ofs]
-                         (fft/fft-mag-norm waveform ofs (bit-shift-left 1 15)))
-                       (range (*        400  4096 2)
-                              (* (+ 600 400) 4096 2)
-                              (*             4096 2)
-                              ))))
-        pickup-index (time (doall
-                      (chr/index (* fa (Math/pow 2.0 (/ -36.5 12.0))) ; A1
-                                 (* fa (Math/pow 2.0 (/  24.5 12.0))) ; A6
-                                 600
-                                 (/ sampling-rate nfft)
-                                 (/ nfft 2))))
-        chromatic (time (doall
-                   (map (fn [v] (chr/pickup pickup-index v))
-                        spectrum)))
-        log10 (Math/log 10.0)
-        db (time (doall
-            (map2d (fn [x] (/ (* 20.0 (Math/log (+ x 1e-10)))
-                              log10))
-                   chromatic)))
-        db-min -80.0 db-max 0.0
-        coeff (/ 254.0 (- db-max db-min))
-        visuals (time (doall
-                 (map2d (fn [x]
-                          (let [i (int (+ 1.0 (* (- x db-min) coeff)))]
-                            (cond (<   i 0) 0
-                                  (< 255 i) 255
-                                  :else     i)))
-                        db)))
-        img (BufferedImage. 600 600 BufferedImage/TYPE_INT_ARGB)
-        _ (.setRGB img 0 0 600 600
-           (int-array (map (fn [i] (bit-or 0xFF000000
-                                           (bit-shift-left i 16)
-                                           (bit-shift-left i  8)
-                                           i))
-                           (apply concat
-                            (reverse (apply map vector visuals)))))
-           0 600)
-        frame (make-frame img)]
+        status (chr/fft {:waveform waveform, :bit-resolution 15})
+        status (chr/freq-to-pix (conj status
+                                 {:freq-of-a4 442.0
+                                  :pitch-range [-36 24]
+                                  :image-height 600}))
+        status (chr/pickuper status)
+        status (chr/color-mapper (conj status {:db-range [-80.0 0.0]}))
+        status (chr/horizon-handler (conj status {:image-dimension [600 600]}))
+        frame (make-frame (:image status))]
     (fft/finalize)))
