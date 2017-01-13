@@ -38,24 +38,20 @@
               (count idxs))))
        vv))
 
-(defn fft [status]
+(defn fft [{br :bit-resolution w :waveform :as status}]
   ; The number of fft is now fixed to 4096 at the moment.
   (assoc status :mag-spectrum
-         (let [br (status :bit-resolution)
-               factor (float (bit-shift-left 1 br))
-               w (status :waveform)]
+         (let [factor (float (bit-shift-left 1 br))]
            (map (fn [ofs] (fft/fft-mag-norm w ofs factor))
                 (range (*        400  4096 2)
                        (* (+ 600 400) 4096 2)
                        (*             4096 2)
                        )))))
 
-(defn freq-to-pix [status]
+(defn freq-to-pix
+  [{fa :freq-of-a4 [pl ph] :pitch-range ih :image-height :as status}]
   (assoc status :pix-vs-fft-map
-         (let [fa      (status :freq-of-a4)
-               [pl ph] (status :pitch-range)
-               ih      (status :image-height)
-               nfft    4096
+         (let [nfft    4096
                sr      44.1e3 ; sampling-rate
                ]
            (index (* fa (Math/pow 2.0 (/ (- pl 0.5) 12.0)))
@@ -64,40 +60,36 @@
                   ))))
 
 (let [log10-inv (/ (Math/log 10.0))]
-  (defn pickuper [status]
-    (let [m (status :pix-vs-fft-map)]
-      (assoc status :db
-             (map (fn [v]
-                    (map (fn [x]
-                           (* 20.0 (Math/log (+ x 1e-10)) log10-inv))
-                         (pickup m v)))
-                  (status :mag-spectrum)
-                  )))))
+  (defn pickuper [{m :pix-vs-fft-map s :mag-spectrum :as status}]
+    (assoc status :db
+           (map (fn [v]
+                  (map (fn [x]
+                         (* 20.0 (Math/log (+ x 1e-10)) log10-inv))
+                       (pickup m v)))
+                s))))
 
 (defn map2d [f vv]
   (map (fn [v] (map f v))
        vv))
 
-(defn color-mapper [status]
+(defn color-mapper [{[l h] :db-range db :db :as status}]
   (assoc status :vertical-pix
-         (let [[l h] (status :db-range)
-               coeff (/ 254.0 (- h l))]
+         (let [coeff (/ 254.0 (- h l))]
            (map2d (fn [x]
                     (let [i (int (+ 1.0 (* (- x l) coeff)))]
                       (cond (<   i 0)   0
                             (< 255 i) 255
                             :else       i)))
-                  (status :db)))))
+                  db))))
 
-(defn horizon-handler [status]
-  (let [[w h] (status :image-dimension)
-        img (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)]
+(defn horizon-handler [{[w h] :image-dimension p :vertical-pix :as status}]
+  (let [img (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)]
     (.setRGB img 0 0 w h
      (int-array (map (fn [i] (bit-or 0xFF000000
                                      (bit-shift-left i 16)
                                      (bit-shift-left i  8)
                                      i))
                      (apply concat
-                      (reverse (apply map vector (status :vertical-pix))))))
+                      (reverse (apply map vector p)))))
      0 w)
     (assoc status :image img)))
