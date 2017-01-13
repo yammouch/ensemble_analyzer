@@ -1,6 +1,10 @@
 (ns ensemble-analyzer.chromatic)
 
-(import '(java.awt.image BufferedImage))
+(import '(java.io File)
+        '(java.awt Dimension)
+        '(java.awt.image BufferedImage)
+        '(javax.swing JPanel JLabel ImageIcon)
+        '(javax.sound.sampled AudioSystem))
 
 (require 'ensemble-analyzer.fft-cl)
 (alias 'fft 'ensemble-analyzer.fft-cl)
@@ -93,3 +97,27 @@
                       (reverse (apply map vector p)))))
      0 w)
     (assoc status :image img)))
+
+(defn read-file []
+  (let [stream (AudioSystem/getAudioInputStream
+                (File. "../data/pascal_20161217.wav"))
+        len (.available stream)
+        buf (byte-array len)]
+    (.read stream buf 0 len)
+    buf))
+
+(defn make-panel []
+  (let [status {:waveform (read-file), :bit-resolution 15}
+        status (fft status)
+        status (freq-to-pix (conj status
+                             {:freq-of-a4 442.0
+                              :pitch-range [-36 24]
+                              :image-height 600}))
+        status (pickuper status)
+        status (color-mapper (conj status {:db-range [-80.0 0.0]}))
+        status (horizon-handler (conj status {:image-dimension [600 600]}))
+        p (proxy [JPanel] []
+            (getPreferredSize []
+              (Dimension. 600 600)))]
+    (.add p (JLabel. (ImageIcon. (:image status))))
+    p))
