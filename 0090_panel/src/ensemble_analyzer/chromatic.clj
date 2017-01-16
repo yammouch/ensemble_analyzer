@@ -107,31 +107,57 @@
     (.read stream buf 0 len)
     buf))
 
-(defn make-mouse-listener []
+(defn make-mouse-listener [rs panel label]
   (proxy [MouseListener] []
     (mousePressed [e]
-      (println (.getPoint e)))
+      (dosync
+        (let [p (.getPoint e)
+              x (int (.getX p))
+              y (int (.getY p))
+              {{[x0 y0] :p0 [x1 y1] :p1} :select} @rs]
+          (ref-set rs
+            (-> @rs
+                (assoc :select-state :drawing)
+                (assoc :select {:p0 [x y] :p1 [x y]})))
+          (.repaint panel)
+          (.repaint label))))
     (mouseReleased [e]
-      (println (.getPoint e)))
+      (dosync
+        (let [{{[x0 y0] :p0 [x1 y1] :p1} :select} @rs
+              xmin (min x0 x1) xmax (max x0 x1)
+              ymin (min y0 y1) ymax (max y0 y1)]
+          (ref-set rs (assoc-in @rs [:select :p0] [xmin ymin]))
+          (ref-set rs (assoc-in @rs [:select :p1] [xmax ymax]))
+          )))
     (mouseClicked [_])
     (mouseEntered [_])
     (mouseExited [_])))
 
-(defn make-mouse-motion-listener []
+(defn make-mouse-motion-listener [rs panel label]
   (proxy [MouseMotionListener] []
     (mouseDragged [e]
-      (println (.getPoint e)))
+      (dosync
+        (let [p (.getPoint e)
+              x (.getX p)
+              y (.getY p)]
+          (ref-set rs (assoc-in @rs [:select :p1] [x y]))
+          (.repaint panel)
+          (.repaint label)
+          )))
     (mouseMoved [_])))
 
 (defn paint-body [g rs]
-  (let [[x0 y0 x1 y1] (:select @rs)]
+  (let [{[x0 y0] :p0 [x1 y1] :p1} (:select @rs)
+        x (min x0 x1) y (min y0 y1)
+        w (int (Math/abs (- x1 x0)))
+        h (int (Math/abs (- y1 y0)))]
     (.setColor g Color/YELLOW)
-    (.drawRect g x0 y0 (- x1 x0) (- y1 y0))
+    (.drawRect g x y w h)
     ))
 
 (defn make-panel []
   (let [status {:waveform (read-file), :bit-resolution 15
-                :select [50 50 100 100]}
+                :select {:p0 [50 50] :p1 [100 100]}, :select-state :idle}
         status (fft status)
         status (freq-to-pix (conj status
                              {:freq-of-a4 442.0
@@ -148,7 +174,7 @@
             (paintComponent [g]
               (proxy-super paintComponent g)
               (paint-body g rs)))]
-    (.addMouseListener l (make-mouse-listener))
-    (.addMouseMotionListener l (make-mouse-motion-listener))
+    (.addMouseListener l (make-mouse-listener rs p l))
+    (.addMouseMotionListener l (make-mouse-motion-listener rs p l))
     (.add p l)
     p))
