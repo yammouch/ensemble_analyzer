@@ -1,7 +1,7 @@
 (ns ensemble-analyzer.chromatic)
 
 (import '(java.io File)
-        '(java.awt Dimension)
+        '(java.awt Dimension Color)
         '(java.awt.image BufferedImage)
         '(java.awt.event MouseListener MouseMotionListener)
         '(javax.swing JPanel JLabel ImageIcon)
@@ -123,8 +123,15 @@
       (println (.getPoint e)))
     (mouseMoved [_])))
 
+(defn paint-body [g rs]
+  (let [[x0 y0 x1 y1] (:select @rs)]
+    (.setColor g Color/YELLOW)
+    (.drawRect g x0 y0 (- x1 x0) (- y1 y0))
+    ))
+
 (defn make-panel []
-  (let [status {:waveform (read-file), :bit-resolution 15}
+  (let [status {:waveform (read-file), :bit-resolution 15
+                :select [50 50 100 100]}
         status (fft status)
         status (freq-to-pix (conj status
                              {:freq-of-a4 442.0
@@ -133,10 +140,15 @@
         status (pickuper status)
         status (color-mapper (conj status {:db-range [-80.0 0.0]}))
         status (horizon-handler (conj status {:image-dimension [600 600]}))
+        rs (ref status)
         p (proxy [JPanel] []
             (getPreferredSize []
-              (Dimension. 600 600)))]
-    (.addMouseListener p (make-mouse-listener))
-    (.addMouseMotionListener p (make-mouse-motion-listener))
-    (.add p (JLabel. (ImageIcon. (:image status))))
+              (Dimension. 600 600)))
+        l (proxy [JLabel] [(ImageIcon. (:image status))]
+            (paintComponent [g]
+              (proxy-super paintComponent g)
+              (paint-body g rs)))]
+    (.addMouseListener l (make-mouse-listener))
+    (.addMouseMotionListener l (make-mouse-motion-listener))
+    (.add p l)
     p))
