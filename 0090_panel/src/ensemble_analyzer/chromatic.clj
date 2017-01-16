@@ -3,6 +3,7 @@
 (import '(java.io File)
         '(java.awt Dimension)
         '(java.awt.image BufferedImage)
+        '(java.awt.event MouseListener MouseMotionListener)
         '(javax.swing JPanel JLabel ImageIcon)
         '(javax.sound.sampled AudioSystem))
 
@@ -106,6 +107,22 @@
     (.read stream buf 0 len)
     buf))
 
+(defn make-mouse-listener []
+  (proxy [MouseListener] []
+    (mousePressed [e]
+      (println (.getPoint e)))
+    (mouseReleased [e]
+      (println (.getPoint e)))
+    (mouseClicked [_])
+    (mouseEntered [_])
+    (mouseExited [_])))
+
+(defn make-mouse-motion-listener []
+  (proxy [MouseMotionListener] []
+    (mouseDragged [e]
+      (println (.getPoint e)))
+    (mouseMoved [_])))
+
 (defn make-panel []
   (let [status {:waveform (read-file), :bit-resolution 15}
         status (fft status)
@@ -119,5 +136,7 @@
         p (proxy [JPanel] []
             (getPreferredSize []
               (Dimension. 600 600)))]
+    (.addMouseListener p (make-mouse-listener))
+    (.addMouseMotionListener p (make-mouse-motion-listener))
     (.add p (JLabel. (ImageIcon. (:image status))))
     p))
