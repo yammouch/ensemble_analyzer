@@ -192,8 +192,15 @@
     (.add p l)
     [status p]))
 
-(defn make-panel2 [{{[x0 _] :p0 [x1 _] :p1} :select p :vertical-pix :as status}]
-  (let [status (assoc status :vertical-pix (drop x0 (take x1 p)))
+(defn make-panel2
+ [{{[x0 y0] :p0 [x1 y1] :p1} :select [l h] :pitch-range :as status}]
+  (let [status (assoc status :pitch-range
+                [(/ (+ (* (- 599 x1) h) (* (+ 1 x1) l)) 600.0)
+                 (/ (+ (* (- 600 x0) h) (*      x0  l)) 600.0)])
+        status (freq-to-pix status)
+        status (pickuper status)
+        status (color-mapper status)
+        status (update-in status [:vertical-pix] #(drop x0 (take x1 %)))
         status (horizon-handler2 status)
         l (JLabel. (ImageIcon. (:image status)))
         p (proxy [JPanel] []
