@@ -120,7 +120,23 @@
     (.read stream buf 0 len)
     buf))
 
-(defn make-mouse-listener [rs panel label]
+(defn update-panel2
+  [{{[x0 y0] :p0 [x1 y1] :p1} :select [l h] :pitch-range :as status}
+   panel]
+  (.removeAll panel)
+  (let [status (assoc status :pitch-range
+                [(/ (+ (* (- 599 y1) h) (* (+ 1 y1) l)) 600.0)
+                 (/ (+ (* (- 600 y0) h) (*      y0  l)) 600.0)])
+        _ (println (status :pitch-range))
+        status (freq-to-pix status)
+        status (pickuper status)
+        status (color-mapper status)
+        status (update-in status [:vertical-pix] #(drop x0 (take x1 %)))
+        status (horizon-handler2 status)
+        l (JLabel. (ImageIcon. (:image status)))]
+    (.add panel l)))
+
+(defn make-mouse-listener [rs panel label panel2]
   (proxy [MouseListener] []
     (mousePressed [e]
       (dosync
@@ -140,8 +156,11 @@
               xmin (min x0 x1) xmax (max x0 x1)
               ymin (min y0 y1) ymax (max y0 y1)]
           (ref-set rs (assoc-in @rs [:select :p0] [xmin ymin]))
-          (ref-set rs (assoc-in @rs [:select :p1] [xmax ymax]))
-          )))
+          (ref-set rs (assoc-in @rs [:select :p1] [xmax ymax])))
+        (update-panel2 @rs panel2)
+        (.validate panel2)
+        (.repaint panel2)
+        ))
     (mouseClicked [_])
     (mouseEntered [_])
     (mouseExited [_])))
@@ -168,7 +187,7 @@
     (.drawRect g x y w h)
     ))
 
-(defn make-panel []
+(defn make-panel [panel2]
   (let [status {:waveform (read-file), :bit-resolution 15
                 :select {:p0 [50 50] :p1 [100 100]}, :select-state :idle}
         status (fft status)
@@ -187,24 +206,12 @@
             (paintComponent [g]
               (proxy-super paintComponent g)
               (paint-body g rs)))]
-    (.addMouseListener l (make-mouse-listener rs p l))
+    (.addMouseListener l (make-mouse-listener rs p l panel2))
     (.addMouseMotionListener l (make-mouse-motion-listener rs p l))
     (.add p l)
     [status p]))
 
-(defn make-panel2
- [{{[x0 y0] :p0 [x1 y1] :p1} :select [l h] :pitch-range :as status}]
-  (let [status (assoc status :pitch-range
-                [(/ (+ (* (- 599 x1) h) (* (+ 1 x1) l)) 600.0)
-                 (/ (+ (* (- 600 x0) h) (*      x0  l)) 600.0)])
-        status (freq-to-pix status)
-        status (pickuper status)
-        status (color-mapper status)
-        status (update-in status [:vertical-pix] #(drop x0 (take x1 %)))
-        status (horizon-handler2 status)
-        l (JLabel. (ImageIcon. (:image status)))
-        p (proxy [JPanel] []
-            (getPreferredSize []
-              (Dimension. 600 600)))]
-    (.add p l)
-    p))
+(defn make-panel2 []
+  (proxy [JPanel] []
+    (getPreferredSize []
+      (Dimension. 600 600))))
