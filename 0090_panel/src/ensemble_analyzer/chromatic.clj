@@ -99,6 +99,18 @@
      0 w)
     (assoc status :image img)))
 
+(defn horizon-handler2 [{[w h] :image-dimension p :vertical-pix :as status}]
+  (let [img (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)]
+    (doseq [j (range (count p))]
+      (.setRGB img j 0 1 h
+       (int-array (map (fn [i] (bit-or 0xFF000000
+                                       (bit-shift-left i 16)
+                                       (bit-shift-left i  8)
+                                       i))
+                       (reverse (nth p j))))
+       0 1))
+    (assoc status :image img)))
+
 (defn read-file []
   (let [stream (AudioSystem/getAudioInputStream
                 (File. "../data/pascal_20161217.wav"))
@@ -177,9 +189,13 @@
     (.addMouseListener l (make-mouse-listener rs p l))
     (.addMouseMotionListener l (make-mouse-motion-listener rs p l))
     (.add p l)
-    p))
+    [status p]))
 
-(defn make-empty-panel []
-  (proxy [JPanel] []
-    (getPreferredSize []
-      (Dimension. 600 600))))
+(defn make-panel2 [status]
+  (let [status (horizon-handler2 status)
+        l (JLabel. (ImageIcon. (:image status)))
+        p (proxy [JPanel] []
+            (getPreferredSize []
+              (Dimension. 600 600)))]
+    (.add p l)
+    p))

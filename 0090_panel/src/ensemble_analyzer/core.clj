@@ -14,8 +14,8 @@
 
 (defn make-frame []
   (let [frame (JFrame. "Ensemble Analyzer")
-        panel (chr/make-panel)
-        panel2 (chr/make-empty-panel)]
+        [status panel] (chr/make-panel)
+        panel2 (chr/make-panel2 status)]
     (.. frame getContentPane (setLayout (GridLayout. 1 2)))
     (.. frame getContentPane (add panel))
     (.. frame getContentPane (add panel2))
