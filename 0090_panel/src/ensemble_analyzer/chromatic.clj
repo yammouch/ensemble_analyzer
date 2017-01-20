@@ -100,14 +100,15 @@
     (assoc status :image img)))
 
 (defn horizon-handler2 [{[w h] :image-dimension p :vertical-pix :as status}]
-  (let [img (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)]
-    (doseq [j (range (count p))]
+  (let [img (BufferedImage. w h BufferedImage/TYPE_INT_ARGB)
+        coeff (/ (float (count p)) w)]
+    (doseq [j (range w)]
       (.setRGB img j 0 1 h
        (int-array (map (fn [i] (bit-or 0xFF000000
                                        (bit-shift-left i 16)
                                        (bit-shift-left i  8)
                                        i))
-                       (reverse (nth p j))))
+                       (reverse (nth p (* coeff (+ j 0.5))))))
        0 1))
     (assoc status :image img)))
 
@@ -191,8 +192,9 @@
     (.add p l)
     [status p]))
 
-(defn make-panel2 [status]
-  (let [status (horizon-handler2 status)
+(defn make-panel2 [{{[x0 _] :p0 [x1 _] :p1} :select p :vertical-pix :as status}]
+  (let [status (assoc status :vertical-pix (drop x0 (take x1 p)))
+        status (horizon-handler2 status)
         l (JLabel. (ImageIcon. (:image status)))
         p (proxy [JPanel] []
             (getPreferredSize []
