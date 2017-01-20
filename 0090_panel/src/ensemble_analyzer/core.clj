@@ -1,7 +1,7 @@
 (ns ensemble-analyzer.core
   (:gen-class))
 
-(import '(java.awt BorderLayout)
+(import '(java.awt GridLayout)
         '(javax.swing JFrame))
 
 (require 'ensemble-analyzer.fft-cl)
@@ -14,8 +14,11 @@
 
 (defn make-frame []
   (let [frame (JFrame. "Ensemble Analyzer")
-        panel (chr/make-panel)]
-    (.. frame getContentPane (add panel BorderLayout/CENTER))
+        panel (chr/make-panel)
+        panel2 (chr/make-empty-panel)]
+    (.. frame getContentPane (setLayout (GridLayout. 1 2)))
+    (.. frame getContentPane (add panel))
+    (.. frame getContentPane (add panel2))
     (.pack frame)
     (.setVisible frame true)
     frame))

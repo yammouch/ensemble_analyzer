@@ -178,3 +178,8 @@
     (.addMouseMotionListener l (make-mouse-motion-listener rs p l))
     (.add p l)
     p))
+
+(defn make-empty-panel []
+  (proxy [JPanel] []
+    (getPreferredSize []
+      (Dimension. 600 600))))
